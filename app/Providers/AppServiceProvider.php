@@ -29,13 +29,13 @@ class AppServiceProvider extends ServiceProvider
     public function boot()
     {
         Queue::before(function (JobProcessing $event) {
-            // $job_id = $event->job->getJobId();
+            $job_id = $event->job->getJobId();
             // $uuid = $event->job->uuid();
             // $connection = $event->job->getConnectionName();
             // $queue = $event->job->getQueue();
             // $payload = $event->job->payload();
 
-            echo 'Processing...';
+            echo "Processing Job $job_id ...";
         });
 
 
@@ -47,21 +47,21 @@ class AppServiceProvider extends ServiceProvider
             $payload = $event->job->payload();
             $payload = json_encode($payload);
 
-            echo 'Processed...';
+            echo "Processed Job $job_id ...";
 
             $query = "insert into jobs_log (job_id, uuid, connection, queue, payload) values ($job_id, '$uuid', '$connection', '$queue', '$payload')";
             db::insert($query);
         });
 
         Queue::failing(function (JobFailed $event) {
-            // $job_id = $event->job->getJobId();
+            $job_id = $event->job->getJobId();
             // $uuid = $event->job->uuid();
             // $connection = $event->job->getConnectionName();
             // $queue = $event->job->getQueue();
             // $payload = $event->job->payload();
             // $exception = $event->exception;
 
-            echo 'Failed...';
+            echo "Failed Job $job_id ...";
         });
     }
 }
