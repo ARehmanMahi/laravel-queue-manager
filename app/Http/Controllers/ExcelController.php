@@ -113,10 +113,11 @@ class ExcelController extends Controller
         $main = $spreadsheetMain->getActiveSheet();
         $highestRow = $main->getHighestRow();
         $highestCol = $main->getHighestColumn();
+        $highestColIndex = Coordinate::columnIndexFromString($highestCol);
 
-        echo 'Last Row Number: '. $highestRow . '<br>';
+        echo 'Last Row Number: ' . $highestRow . '<br>';
         echo 'Last Col Name: ' . $highestCol . '<br>';
-        echo 'Last Col Index: ' . Coordinate::columnIndexFromString($highestCol) . '<br>';
+        echo 'Last Col Index: ' . $highestColIndex . '<br>';
 
         foreach ($inputFileNames as $inputFileName) {
             $filePath = storage_path("app/public/roro-sheets/$inputFileName");
@@ -126,7 +127,7 @@ class ExcelController extends Controller
             $sheetName = 'Sheet1';
             $clonedWorksheet = clone $spreadsheet->getSheetByName($sheetName);
 
-            if($duplicateSheet = $spreadsheetMain->getSheetByName($sheetName)) {
+            if ($duplicateSheet = $spreadsheetMain->getSheetByName($sheetName)) {
                 $duplicateSheet->setTitle($sheetName . date('_YmdHis'));
             }
 
@@ -142,11 +143,9 @@ class ExcelController extends Controller
 
     public function mergeExternalInOne()
     {
+        $time_start = microtime(true);
+
         $inputFileType = 'Xlsx';
-        $inputFileNames = [
-            'a.xlsx',
-            'b.xlsx',
-        ];
         $sheetnames = [
             'Sheet1'
         ];
@@ -154,30 +153,38 @@ class ExcelController extends Controller
         $reader = IOFactory::createReader($inputFileType);
         $reader->setLoadSheetsOnly($sheetnames);
 
-        $inputFileName = array_shift($inputFileNames);
-        $filePath = storage_path("app/public/roro-sheets/$inputFileName");
-        echo $filePath . '<br>';
-        $spreadsheetMain = $reader->load($filePath);
+        $mainFileName = 'a.xlsx';
+        $mainFilePath = storage_path("app/public/roro-sheets/$mainFileName");
+        $mainSpreadsheet = $reader->load($mainFilePath);
 
-        foreach ($inputFileNames as $inputFileName) {
-            $filePath = storage_path("app/public/roro-sheets/$inputFileName");
-            $spreadsheet = $reader->load($filePath);
+        $mainWorksheet = $mainSpreadsheet->getActiveSheet();
+        $mainHighestRow = $mainWorksheet->getHighestRow();
 
-            $sheetName = 'Sheet1';
-            $clonedWorksheet = clone $spreadsheet->getSheetByName($sheetName);
+        $inputFileName = 'b.xlsx';
+        $inputFilePath = storage_path("app/public/roro-sheets/$inputFileName");
+        $inputSpreadsheet = $reader->load($inputFilePath);
 
-            if($duplicateSheet = $spreadsheetMain->getSheetByName($sheetName)) {
-                $duplicateSheet->setTitle($sheetName . date('_YmdHis'));
-            }
+        $inputWorksheet = $inputSpreadsheet->getActiveSheet();
+        $inputHighestRow = $inputWorksheet->getHighestRow();
 
-            $spreadsheetMain->addExternalSheet($clonedWorksheet);
-        }
+        $inputCellValues = $inputWorksheet->rangeToArray(
+            'A2:A' . $inputHighestRow, // The worksheet range that we want to retrieve
+            null,         // Value that should be returned for empty cells
+            false,  // Should formulas be calculated (the equivalent of getCalculatedValue() for each cell)
+            false,      // Should values be formatted (the equivalent of getFormattedValue() for each cell)
+            false      // Should the array be indexed by cell row and cell column
+        );
 
-        $writer = new Xlsx($spreadsheetMain);
+        $mainWorksheet->fromArray($inputCellValues, null, 'A' . ($mainHighestRow + 1));
 
-        $fileName = "merged2.xlsx";
-        $filePath = storage_path("app/public/roro-sheets/$fileName");
-        $writer->save($filePath);
+        $writer = new Xlsx($mainSpreadsheet);
+        $writer->save($mainFilePath);
+
+        echo 'total memory usage: ' . round(memory_get_usage() / 1024 / 1024, 2) . 'MB <br>';
+        echo 'peak memory usage: ' . round(memory_get_peak_usage(true) / 1024 / 1024, 2) . 'MB <br>';
+
+        //dividing with 60 will give the execution time in minutes otherwise seconds
+        $execution_time = (microtime(true) - $time_start) * 1000;
+        echo 'time usage: ' . round($execution_time, 2) . ' ms<br>';
     }
-
 }
