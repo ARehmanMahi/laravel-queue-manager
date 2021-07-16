@@ -22,3 +22,5 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::get('test-job', [ExcelController::class, 'test_job']);
 Route::get('roro-sheets', [ExcelController::class, 'roro_sheets']);
 Route::get('excel', [ExcelController::class, 'excel']);
+Route::get('merge', [ExcelController::class, 'mergeExternalSheet']);
+Route::get('merge2', [ExcelController::class, 'mergeExternalInOne']);

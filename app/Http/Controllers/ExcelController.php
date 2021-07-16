@@ -8,7 +8,9 @@ use App\Models\Car;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ExcelController extends Controller
 {
@@ -56,13 +58,13 @@ class ExcelController extends Controller
         $spreadsheet = IOFactory::load($template);
         $worksheet = $spreadsheet->getActiveSheet();
 
-        $row = 1;
+        $row = 2;
         foreach ($carRecords as $car) {
-            $row++;
-            $col = 0;
+            $col = 1;
             foreach ($car as $value) {
-                $worksheet->setCellValueByColumnAndRow(++$col, $row, $value);
+                $worksheet->setCellValueByColumnAndRow($col++, $row, $value);
             }
+            $row++;
         }
 
         $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
@@ -84,4 +86,98 @@ class ExcelController extends Controller
 
         echo "Spreadsheet generated with limit max $limit. You can access file $link";
     }
+
+    /**
+     * @throws \PhpOffice\PhpSpreadsheet\Exception
+     * @throws \PhpOffice\PhpSpreadsheet\Writer\Exception
+     * @throws \PhpOffice\PhpSpreadsheet\Reader\Exception
+     */
+    public function mergeExternalSheet()
+    {
+        $inputFileType = 'Xlsx';
+        $inputFileNames = [
+            'a.xlsx',
+            'b.xlsx',
+        ];
+        $sheetnames = [
+            'Sheet1'
+        ];
+
+        $reader = IOFactory::createReader($inputFileType);
+        $reader->setLoadSheetsOnly($sheetnames);
+
+        $inputFileName = array_shift($inputFileNames);
+        $filePath = storage_path("app/public/roro-sheets/$inputFileName");
+        $spreadsheetMain = $reader->load($filePath);
+
+        $main = $spreadsheetMain->getActiveSheet();
+        $highestRow = $main->getHighestRow();
+        $highestCol = $main->getHighestColumn();
+
+        echo 'Last Row Number: '. $highestRow . '<br>';
+        echo 'Last Col Name: ' . $highestCol . '<br>';
+        echo 'Last Col Index: ' . Coordinate::columnIndexFromString($highestCol) . '<br>';
+
+        foreach ($inputFileNames as $inputFileName) {
+            $filePath = storage_path("app/public/roro-sheets/$inputFileName");
+            echo $filePath . '<br>';
+            $spreadsheet = $reader->load($filePath);
+
+            $sheetName = 'Sheet1';
+            $clonedWorksheet = clone $spreadsheet->getSheetByName($sheetName);
+
+            if($duplicateSheet = $spreadsheetMain->getSheetByName($sheetName)) {
+                $duplicateSheet->setTitle($sheetName . date('_YmdHis'));
+            }
+
+            $spreadsheetMain->addExternalSheet($clonedWorksheet);
+        }
+
+        $writer = new Xlsx($spreadsheetMain);
+
+        $fileName = "merged.xlsx";
+        $filePath = storage_path("app/public/roro-sheets/$fileName");
+        $writer->save($filePath);
+    }
+
+    public function mergeExternalInOne()
+    {
+        $inputFileType = 'Xlsx';
+        $inputFileNames = [
+            'a.xlsx',
+            'b.xlsx',
+        ];
+        $sheetnames = [
+            'Sheet1'
+        ];
+
+        $reader = IOFactory::createReader($inputFileType);
+        $reader->setLoadSheetsOnly($sheetnames);
+
+        $inputFileName = array_shift($inputFileNames);
+        $filePath = storage_path("app/public/roro-sheets/$inputFileName");
+        echo $filePath . '<br>';
+        $spreadsheetMain = $reader->load($filePath);
+
+        foreach ($inputFileNames as $inputFileName) {
+            $filePath = storage_path("app/public/roro-sheets/$inputFileName");
+            $spreadsheet = $reader->load($filePath);
+
+            $sheetName = 'Sheet1';
+            $clonedWorksheet = clone $spreadsheet->getSheetByName($sheetName);
+
+            if($duplicateSheet = $spreadsheetMain->getSheetByName($sheetName)) {
+                $duplicateSheet->setTitle($sheetName . date('_YmdHis'));
+            }
+
+            $spreadsheetMain->addExternalSheet($clonedWorksheet);
+        }
+
+        $writer = new Xlsx($spreadsheetMain);
+
+        $fileName = "merged2.xlsx";
+        $filePath = storage_path("app/public/roro-sheets/$fileName");
+        $writer->save($filePath);
+    }
+
 }
