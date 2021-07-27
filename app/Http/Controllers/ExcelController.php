@@ -7,8 +7,11 @@ use App\Jobs\CarsExportJob;
 use App\Models\Car;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use PhpOffice\PhpSpreadsheet\Worksheet\MemoryDrawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -310,6 +313,8 @@ class ExcelController extends Controller
         $srcColumnEnd = Coordinate::columnIndexFromString($srcColumnEnd);
         $destColumnStart = Coordinate::columnIndexFromString($destColumnStart);
 
+        $wsExt = new WorksheetDrawingExt($sheet);
+
         $rowCount = 0;
         for ($row = $srcRowStart; $row <= $srcRowEnd; $row++) {
             $colCount = 0;
@@ -323,6 +328,28 @@ class ExcelController extends Controller
 
                 $styleArray = $sheet->getStyle($cell->getCoordinate())->exportArray();
                 $destSheet->getStyle($dstCell)->applyFromArray($styleArray);
+
+                // Image insert code start
+                $drawings = $wsExt->drawingsForCoordinate($cell->getCoordinate());
+                foreach ($drawings as $d) {
+                    $zipReader = fopen($d->getPath(),'r');
+                    $imageContents = '';
+                    while (!feof($zipReader)) {
+                        $imageContents .= fread($zipReader,1024);
+                    }
+                    fclose($zipReader);
+
+                    // Add a drawing to the worksheet
+                    $drawing = new MemoryDrawing();
+                    $drawing->setName('Sample image');
+                    $drawing->setDescription('Sample image');
+                    $drawing->setImageResource(imagecreatefromstring($imageContents));
+                    $drawing->setRenderingFunction(MemoryDrawing::RENDERING_DEFAULT);
+                    $drawing->setMimeType(MemoryDrawing::MIMETYPE_DEFAULT);
+                    $drawing->setCoordinates($dstCell);
+                    $drawing->setWorksheet($destSheet);
+                }
+                // Image insert code end
 
                 // Set width of column, but only once per column
                 if ($rowCount === 0) {
@@ -363,5 +390,58 @@ class ExcelController extends Controller
                 $destSheet->mergeCells($merge);
             }
         }
+    }
+}
+
+class WorksheetDrawingExt
+{
+    private $idx = [];
+
+    /**
+     * Upon construction will build an index drawings and their locations
+     */
+    public function __construct(Worksheet $ws)
+    {
+        $this->createDrawingIndex($ws);
+    }
+
+    private function addDrawingToCell($coord, $drawing)
+    {
+        if (array_key_exists($coord, $this->idx)) {
+            //There's already one image here - append a new
+            $this->idx[$coord][] = $drawing;
+        } else {
+            //No images so far, setup the base array
+            $this->idx[$coord] = [$drawing];
+        }
+    }
+
+    private function createDrawingIndex($ws)
+    {
+        $drawings = $ws->getDrawingCollection();
+        foreach ($drawings as $drawing) {
+            $coord = $drawing->getCoordinates();//Inconsistent plural!
+            $this->addDrawingToCell($coord, $drawing);
+        }
+    }
+
+    /**
+     * Get all drawings for a cell (always returns an array even if there's 1 or less images)
+     */
+    public function drawingsForCell(Cell $cell): array
+    {
+        return $this->drawingsForCoordinate($cell->getCoordinate());
+    }
+
+    /**
+     * Get all drawings at the given coordinate (always returns an array even if there's 1 or less images)
+     */
+    public function drawingsForCoordinate(string $coordinate): array
+    {
+        if (array_key_exists($coordinate, $this->idx)) {
+            return $this->idx[$coordinate];
+        }
+
+        return [];
     }
 }
