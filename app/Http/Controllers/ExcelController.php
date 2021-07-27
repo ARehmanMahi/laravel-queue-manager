@@ -271,7 +271,7 @@ class ExcelController extends Controller
         $inputHighestRow = $inputWorksheet->getHighestRow();
         $dataRowsEnd = $inputHighestRow - $footerRows - 1;
 
-        $this->copyRows($inputWorksheet, "A$dataRowsStart:G$dataRowsEnd", "A$mainHighestRow", $mainWorksheet);
+        $this->copyRowsWithStyle($inputWorksheet, "A$dataRowsStart:G$dataRowsEnd", "A$mainHighestRow", $mainWorksheet);
 
         $writer = new Xlsx($mainSpreadsheet);
         $writer->save($mainFilePath);
@@ -287,7 +287,7 @@ class ExcelController extends Controller
     /**
      * @throws \PhpOffice\PhpSpreadsheet\Exception
      */
-    private function copyRows(Worksheet $sheet, $srcRange, $dstCell, Worksheet $destSheet = null): void
+    private function copyRowsWithStyle(Worksheet $sheet, $srcRange, $dstCell, Worksheet $destSheet = null): void
     {
         if (!isset($destSheet)) {
             $destSheet = $sheet;
