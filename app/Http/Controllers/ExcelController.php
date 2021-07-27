@@ -6,10 +6,10 @@ use App\Jobs\TestJob;
 use App\Jobs\CarsExportJob;
 use App\Models\Car;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ExcelController extends Controller
@@ -186,5 +186,182 @@ class ExcelController extends Controller
         //dividing with 60 will give the execution time in minutes otherwise seconds
         $execution_time = (microtime(true) - $time_start) * 1000;
         echo 'time usage: ' . round($execution_time, 2) . ' ms<br>';
+    }
+
+    public function mergeExternalInOne_test()
+    {
+        $time_start = microtime(true);
+
+        $headerRows = 13;
+        $footerRows = 13;
+        $dataRowsStart = $headerRows + 1;
+
+        $inputFileType = 'Xlsx';
+        $sheetnames = [
+            'Sheet1'
+        ];
+
+        $reader = IOFactory::createReader($inputFileType);
+        $reader->setLoadSheetsOnly($sheetnames);
+
+        $mainFileName = 'a.xlsx';
+        $mainFilePath = storage_path("app/public/roro-sheets/$mainFileName");
+        $mainSpreadsheet = $reader->load($mainFilePath);
+
+        $mainWorksheet = $mainSpreadsheet->getActiveSheet();
+        $mainHighestRow = $mainWorksheet->getHighestRow();
+
+        $inputFileName = 'Book_Yes.xlsx';
+        $inputFilePath = storage_path("app/public/roro-sheets/$inputFileName");
+        $inputSpreadsheet = $reader->load($inputFilePath);
+
+        $inputWorksheet = $inputSpreadsheet->getActiveSheet();
+        $inputHighestRow = $inputWorksheet->getHighestRow();
+        $dataRowsEnd = $inputHighestRow - $footerRows - 1;
+
+        $inputCellValues = $inputWorksheet->rangeToArray(
+            "A$dataRowsStart:G$dataRowsEnd", // The worksheet range that we want to retrieve
+            null,         // Value that should be returned for empty cells
+            true,  // Should formulas be calculated (the equivalent of getCalculatedValue() for each cell)
+            true,      // Should values be formatted (the equivalent of getFormattedValue() for each cell)
+            false      // Should the array be indexed by cell row and cell column
+        );
+
+        $mainWorksheet->fromArray($inputCellValues, null, 'A' . ($mainHighestRow + 1));
+
+        $writer = new Xlsx($mainSpreadsheet);
+        $writer->save($mainFilePath);
+
+        echo 'total memory usage: ' . round(memory_get_usage() / 1024 / 1024, 2) . 'MB <br>';
+        echo 'peak memory usage: ' . round(memory_get_peak_usage(true) / 1024 / 1024, 2) . 'MB <br>';
+
+        //dividing with 60 will give the execution time in minutes otherwise seconds
+        $execution_time = (microtime(true) - $time_start) * 1000;
+        echo 'time usage: ' . round($execution_time, 2) . ' ms<br>';
+    }
+
+    public function mergeExternalInOne_styled()
+    {
+        $time_start = microtime(true);
+
+        $headerRows = 13;
+        $footerRows = 13;
+        $dataRowsStart = $headerRows + 1;
+
+        $inputFileType = 'Xlsx';
+        $sheetNames = [
+            'Sheet1'
+        ];
+
+        $reader = IOFactory::createReader($inputFileType);
+        $reader->setLoadSheetsOnly($sheetNames);
+
+        $mainFileName = 'a.xlsx';
+        $mainFilePath = storage_path("app/public/roro-sheets/$mainFileName");
+        $mainSpreadsheet = $reader->load($mainFilePath);
+
+        $mainWorksheet = $mainSpreadsheet->getActiveSheet();
+        $mainHighestRow = $mainWorksheet->getHighestRow();
+
+        $inputFileName = 'Book_Yes.xlsx';
+        $inputFilePath = storage_path("app/public/roro-sheets/$inputFileName");
+        $inputSpreadsheet = $reader->load($inputFilePath);
+
+        $inputWorksheet = $inputSpreadsheet->getActiveSheet();
+        $inputHighestRow = $inputWorksheet->getHighestRow();
+        $dataRowsEnd = $inputHighestRow - $footerRows - 1;
+
+        $this->copyRows($inputWorksheet, "A$dataRowsStart:G$dataRowsEnd", "A$mainHighestRow", $mainWorksheet);
+
+        $writer = new Xlsx($mainSpreadsheet);
+        $writer->save($mainFilePath);
+
+        echo 'total memory usage: ' . round(memory_get_usage() / 1024 / 1024, 2) . 'MB <br>';
+        echo 'peak memory usage: ' . round(memory_get_peak_usage(true) / 1024 / 1024, 2) . 'MB <br>';
+
+        //dividing with 60 will give the execution time in minutes otherwise seconds
+        $execution_time = (microtime(true) - $time_start) * 1000;
+        echo 'time usage: ' . round($execution_time, 2) . ' ms<br>';
+    }
+
+    /**
+     * @throws \PhpOffice\PhpSpreadsheet\Exception
+     */
+    private function copyRows(Worksheet $sheet, $srcRange, $dstCell, Worksheet $destSheet = null): void
+    {
+        if (!isset($destSheet)) {
+            $destSheet = $sheet;
+        }
+
+        if (!preg_match('/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/', $srcRange, $srcRangeMatch)) {
+            // Invalid src range
+            return;
+        }
+
+        if (!preg_match('/^([A-Z]+)(\d+)$/', $dstCell, $destCellMatch)) {
+            // Invalid dest cell
+            return;
+        }
+
+        [1 => $srcColumnStart, 2 => $srcRowStart, 3 => $srcColumnEnd, 4 => $srcRowEnd] = $srcRangeMatch;
+        [1 => $destColumnStart, 2 => $destRowStart] = $destCellMatch;
+
+        $srcColumnStart = Coordinate::columnIndexFromString($srcColumnStart);
+        $srcColumnEnd = Coordinate::columnIndexFromString($srcColumnEnd);
+        $destColumnStart = Coordinate::columnIndexFromString($destColumnStart);
+
+        $rowCount = 0;
+        for ($row = $srcRowStart; $row <= $srcRowEnd; $row++) {
+            $colCount = 0;
+            for ($col = $srcColumnStart; $col <= $srcColumnEnd; $col++) {
+                $cell = $sheet->getCellByColumnAndRow($col, $row);
+                $dstCell = Coordinate::stringFromColumnIndex($destColumnStart + $colCount) . (string)($destRowStart + $rowCount);
+                $destSheet->setCellValue($dstCell, $cell->getValue());
+
+                // $style = $sheet->getStyleByColumnAndRow($col, $row);
+                // $destSheet->duplicateStyle($style, $dstCell);
+
+                $styleArray = $sheet->getStyle($cell->getCoordinate())->exportArray();
+                $destSheet->getStyle($dstCell)->applyFromArray($styleArray);
+
+                // Set width of column, but only once per column
+                if ($rowCount === 0) {
+                    $w = $sheet->getColumnDimensionByColumn($col)->getWidth();
+                    $destSheet->getColumnDimensionByColumn($destColumnStart + $colCount)->setAutoSize(false);
+                    $destSheet->getColumnDimensionByColumn($destColumnStart + $colCount)->setWidth($w);
+                }
+
+                $colCount++;
+            }
+
+            $h = $sheet->getRowDimension($row)->getRowHeight();
+            $destSheet->getRowDimension($destRowStart + $rowCount)->setRowHeight($h);
+
+            $rowCount++;
+        }
+
+        foreach ($sheet->getMergeCells() as $mergeCell) {
+            $mc = explode(":", $mergeCell);
+            $mergeColSrcStart = Coordinate::columnIndexFromString(preg_replace("/[0-9]*/", "", $mc[0]));
+            $mergeColSrcEnd = Coordinate::columnIndexFromString(preg_replace("/[0-9]*/", "", $mc[1]));
+            $mergeRowSrcStart = ((int)preg_replace("/[A-Z]*/", "", $mc[0]));
+            $mergeRowSrcEnd = ((int)preg_replace("/[A-Z]*/", "", $mc[1]));
+
+            $relativeColStart = $mergeColSrcStart - $srcColumnStart;
+            $relativeColEnd = $mergeColSrcEnd - $srcColumnStart;
+            $relativeRowStart = $mergeRowSrcStart - $srcRowStart;
+            $relativeRowEnd = $mergeRowSrcEnd - $srcRowStart;
+
+            if (0 <= $mergeRowSrcStart && $mergeRowSrcStart >= $srcRowStart && $mergeRowSrcEnd <= $srcRowEnd) {
+                $targetColStart = Coordinate::stringFromColumnIndex($destColumnStart + $relativeColStart);
+                $targetColEnd = Coordinate::stringFromColumnIndex($destColumnStart + $relativeColEnd);
+                $targetRowStart = $destRowStart + $relativeRowStart;
+                $targetRowEnd = $destRowStart + $relativeRowEnd;
+
+                $merge = (string)$targetColStart . (string)($targetRowStart) . ":" . (string)$targetColEnd . (string)($targetRowEnd);
+                //Merge target cells
+                $destSheet->mergeCells($merge);
+            }
+        }
     }
 }
