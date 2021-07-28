@@ -259,7 +259,7 @@ class ExcelController extends Controller
         $reader = IOFactory::createReader($inputFileType);
         $reader->setLoadSheetsOnly($sheetNames);
 
-        $mainFileName = 'a.xlsx';
+        $mainFileName = 'b.xlsx';
         $mainFilePath = storage_path("app/public/roro-sheets/$mainFileName");
         $mainSpreadsheet = $reader->load($mainFilePath);
 
