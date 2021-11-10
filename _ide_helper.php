@@ -4289,6 +4289,102 @@
             /**
      * 
      *
+     * @see \Illuminate\Encryption\Encrypter
+     */ 
+        class Crypt {
+                    /**
+         * Determine if the given key and cipher combination is valid.
+         *
+         * @param string $key
+         * @param string $cipher
+         * @return bool 
+         * @static 
+         */ 
+        public static function supported($key, $cipher)
+        {
+                        return \Illuminate\Encryption\Encrypter::supported($key, $cipher);
+        }
+                    /**
+         * Create a new encryption key for the given cipher.
+         *
+         * @param string $cipher
+         * @return string 
+         * @static 
+         */ 
+        public static function generateKey($cipher)
+        {
+                        return \Illuminate\Encryption\Encrypter::generateKey($cipher);
+        }
+                    /**
+         * Encrypt the given value.
+         *
+         * @param mixed $value
+         * @param bool $serialize
+         * @return string 
+         * @throws \Illuminate\Contracts\Encryption\EncryptException
+         * @static 
+         */ 
+        public static function encrypt($value, $serialize = true)
+        {
+                        /** @var \Illuminate\Encryption\Encrypter $instance */
+                        return $instance->encrypt($value, $serialize);
+        }
+                    /**
+         * Encrypt a string without serialization.
+         *
+         * @param string $value
+         * @return string 
+         * @throws \Illuminate\Contracts\Encryption\EncryptException
+         * @static 
+         */ 
+        public static function encryptString($value)
+        {
+                        /** @var \Illuminate\Encryption\Encrypter $instance */
+                        return $instance->encryptString($value);
+        }
+                    /**
+         * Decrypt the given value.
+         *
+         * @param string $payload
+         * @param bool $unserialize
+         * @return mixed 
+         * @throws \Illuminate\Contracts\Encryption\DecryptException
+         * @static 
+         */ 
+        public static function decrypt($payload, $unserialize = true)
+        {
+                        /** @var \Illuminate\Encryption\Encrypter $instance */
+                        return $instance->decrypt($payload, $unserialize);
+        }
+                    /**
+         * Decrypt the given string without unserialization.
+         *
+         * @param string $payload
+         * @return string 
+         * @throws \Illuminate\Contracts\Encryption\DecryptException
+         * @static 
+         */ 
+        public static function decryptString($payload)
+        {
+                        /** @var \Illuminate\Encryption\Encrypter $instance */
+                        return $instance->decryptString($payload);
+        }
+                    /**
+         * Get the encryption key.
+         *
+         * @return string 
+         * @static 
+         */ 
+        public static function getKey()
+        {
+                        /** @var \Illuminate\Encryption\Encrypter $instance */
+                        return $instance->getKey();
+        }
+         
+    }
+            /**
+     * 
+     *
      * @see https://carbon.nesbot.com/docs/
      * @see https://github.com/briannesbitt/Carbon/blob/master/src/Carbon/Factory.php
      * @method static \Illuminate\Support\Carbon create($year = 0, $month = 1, $day = 1, $hour = 0, $minute = 0, $second = 0, $tz = null)
@@ -8705,17 +8801,29 @@
                         return $instance->setConnectionName($name);
         }
                     /**
+         * Get the number of queue jobs that are ready to process.
+         *
+         * @param string|null $queue
+         * @return int 
+         * @static 
+         */ 
+        public static function readyNow($queue = null)
+        {
+                        /** @var \Laravel\Horizon\RedisQueue $instance */
+                        return $instance->readyNow($queue);
+        }
+                    /**
          * Migrate the delayed jobs that are ready to the regular queue.
          *
          * @param string $from
          * @param string $to
-         * @return array 
+         * @return void 
          * @static 
          */ 
         public static function migrateExpiredJobs($from, $to)
         {
-                        /** @var \Illuminate\Queue\RedisQueue $instance */
-                        return $instance->migrateExpiredJobs($from, $to);
+                        /** @var \Laravel\Horizon\RedisQueue $instance */
+                        $instance->migrateExpiredJobs($from, $to);
         }
                     /**
          * Delete a reserved job from the queue.
@@ -8727,7 +8835,7 @@
          */ 
         public static function deleteReserved($queue, $job)
         {
-                        /** @var \Illuminate\Queue\RedisQueue $instance */
+                        /** @var \Laravel\Horizon\RedisQueue $instance */
                         $instance->deleteReserved($queue, $job);
         }
                     /**
@@ -8741,7 +8849,7 @@
          */ 
         public static function deleteAndRelease($queue, $job, $delay)
         {
-                        /** @var \Illuminate\Queue\RedisQueue $instance */
+                        /** @var \Laravel\Horizon\RedisQueue $instance */
                         $instance->deleteAndRelease($queue, $job, $delay);
         }
                     /**
@@ -8752,8 +8860,8 @@
          * @static 
          */ 
         public static function clear($queue)
-        {
-                        /** @var \Illuminate\Queue\RedisQueue $instance */
+        {            //Method inherited from \Illuminate\Queue\RedisQueue         
+                        /** @var \Laravel\Horizon\RedisQueue $instance */
                         return $instance->clear($queue);
         }
                     /**
@@ -8764,8 +8872,8 @@
          * @static 
          */ 
         public static function getQueue($queue)
-        {
-                        /** @var \Illuminate\Queue\RedisQueue $instance */
+        {            //Method inherited from \Illuminate\Queue\RedisQueue         
+                        /** @var \Laravel\Horizon\RedisQueue $instance */
                         return $instance->getQueue($queue);
         }
                     /**
@@ -8775,8 +8883,8 @@
          * @static 
          */ 
         public static function getConnection()
-        {
-                        /** @var \Illuminate\Queue\RedisQueue $instance */
+        {            //Method inherited from \Illuminate\Queue\RedisQueue         
+                        /** @var \Laravel\Horizon\RedisQueue $instance */
                         return $instance->getConnection();
         }
                     /**
@@ -8786,8 +8894,8 @@
          * @static 
          */ 
         public static function getRedis()
-        {
-                        /** @var \Illuminate\Queue\RedisQueue $instance */
+        {            //Method inherited from \Illuminate\Queue\RedisQueue         
+                        /** @var \Laravel\Horizon\RedisQueue $instance */
                         return $instance->getRedis();
         }
                     /**
@@ -8799,7 +8907,7 @@
          */ 
         public static function getJobBackoff($job)
         {            //Method inherited from \Illuminate\Queue\Queue         
-                        /** @var \Illuminate\Queue\RedisQueue $instance */
+                        /** @var \Laravel\Horizon\RedisQueue $instance */
                         return $instance->getJobBackoff($job);
         }
                     /**
@@ -8811,7 +8919,7 @@
          */ 
         public static function getJobExpiration($job)
         {            //Method inherited from \Illuminate\Queue\Queue         
-                        /** @var \Illuminate\Queue\RedisQueue $instance */
+                        /** @var \Laravel\Horizon\RedisQueue $instance */
                         return $instance->getJobExpiration($job);
         }
                     /**
@@ -8823,7 +8931,7 @@
          */ 
         public static function createPayloadUsing($callback)
         {            //Method inherited from \Illuminate\Queue\Queue         
-                        \Illuminate\Queue\RedisQueue::createPayloadUsing($callback);
+                        \Laravel\Horizon\RedisQueue::createPayloadUsing($callback);
         }
                     /**
          * Get the container instance being used by the connection.
@@ -8833,7 +8941,7 @@
          */ 
         public static function getContainer()
         {            //Method inherited from \Illuminate\Queue\Queue         
-                        /** @var \Illuminate\Queue\RedisQueue $instance */
+                        /** @var \Laravel\Horizon\RedisQueue $instance */
                         return $instance->getContainer();
         }
                     /**
@@ -8845,7 +8953,7 @@
          */ 
         public static function setContainer($container)
         {            //Method inherited from \Illuminate\Queue\Queue         
-                        /** @var \Illuminate\Queue\RedisQueue $instance */
+                        /** @var \Laravel\Horizon\RedisQueue $instance */
                         $instance->setContainer($container);
         }
          
@@ -16791,6 +16899,17 @@
      
 }
 
+    namespace Laravel\Horizon { 
+            /**
+     * 
+     *
+     */ 
+        class Horizon {
+         
+    }
+     
+}
+
     namespace Livewire { 
             /**
      * 
@@ -17564,6 +17683,7 @@ namespace  {
             class Cache extends \Illuminate\Support\Facades\Cache {}
             class Config extends \Illuminate\Support\Facades\Config {}
             class Cookie extends \Illuminate\Support\Facades\Cookie {}
+            class Crypt extends \Illuminate\Support\Facades\Crypt {}
             class Date extends \Illuminate\Support\Facades\Date {}
             class DB extends \Illuminate\Support\Facades\DB {}
             class Eloquent extends \Illuminate\Database\Eloquent\Model {             
@@ -20808,6 +20928,7 @@ namespace  {
             class Debugbar extends \Barryvdh\Debugbar\Facade {}
             class Flare extends \Facade\Ignition\Facades\Flare {}
             class Agent extends \Jenssegers\Agent\Facades\Agent {}
+            class Horizon extends \Laravel\Horizon\Horizon {}
             class Livewire extends \Livewire\Livewire {}
             class Excel extends \Maatwebsite\Excel\Facades\Excel {}
      
